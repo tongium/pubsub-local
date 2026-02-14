@@ -1,0 +1,12 @@
+topics:
+  - id: test1
+    subscribers:
+      - id: test1-sub
+  - id: test2
+    subscribers: []
+  - id: test3
+    subscribers: []
+  - id: test4
+    subscribers: []
+  - id: test5
+    subscribers: []
