@@ -11,3 +11,5 @@ wheels/
 messages/
 data/*
 !data/example.jsonl
+
+settings.yaml
