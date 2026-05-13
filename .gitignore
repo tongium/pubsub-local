@@ -19,3 +19,5 @@ settings.yaml
 pubsub-listener
 pubsub-publish
 pubsub-web
+
+.env
