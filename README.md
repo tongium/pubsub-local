@@ -28,8 +28,10 @@ To run as a standalone service in your project:
 ```yaml
 # docker-compose.yml
 services:
-  pubsub:
-    image: ghcr.io/tongium/pubsub-local:main
+  pubsub-local:
+    image: ghcr.io/tongium/pubsub-local
+    environment:
+      PUBSUB_PROJECT_ID: test-project
     ports:
       - "8681:8681"
       - "8080:8080"
