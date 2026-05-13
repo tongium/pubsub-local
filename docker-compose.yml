@@ -1,0 +1,12 @@
+services:
+  pubsub:
+    build: .
+    ports:
+      - "8681:8681"
+      - "8080:8080"
+    environment:
+      - PUBSUB_PROJECT_ID=test-project
+    volumes:
+      - ./settings.yaml:/app/settings.yaml
+      - ./messages:/app/messages
+    restart: always

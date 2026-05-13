@@ -7,72 +7,88 @@ A local Google Cloud Pub/Sub emulator setup that automatically configures topics
 **Key Features:**
 - Topic configuration via YAML files
 - Automatic message persistence to disk
-- Local emulator setup with tmux multi-pane execution
 - Batch message publishing from JSONL format
 
 ## Quick Start
 
-Run the emulator and subscriber together:
+### Using mise (Local Development)
+
+Run the emulator, listener, and web viewer together:
 
 ```bash
-chmod +x run.sh
-./run.sh
+mise run up
 ```
 
-This script starts the Pub/Sub emulator and runs the subscriber (`main.py`) with `uv`.
+This starts the Pub/Sub emulator in Docker, the Go listener, and the web viewer (at http://localhost:8080) in parallel.
 
-## Manual Setup
+### Using Docker Compose (Portable)
 
-If you prefer to run the emulator and subscriber separately:
+To run as a standalone service in your project:
 
-**Terminal 1 - Start emulator:**
+```yaml
+# docker-compose.yml
+services:
+  pubsub:
+    image: ghcr.io/tongium/pubsub-local:main
+    ports:
+      - "8681:8681"
+      - "8080:8080"
+    volumes:
+      - ./pubsub/settings.yaml:/app/settings.yaml
+      - ./pubsub/messages:/app/messages
+```
+
+Run it:
+```bash
+docker compose up -d
+```
+## Docker Configuration
+
+### Build the Image
+```bash
+docker build -t pubsub-local .
+```
+
+### Manual Run
+```bash
+docker run -d \
+  -p 8681:8681 \
+  -p 8080:8080 \
+  -v $(pwd)/settings.yaml:/app/settings.yaml \
+  -v $(pwd)/messages:/app/messages \
+  pubsub-local
+```
+
+## Manual Setup (Local)
+
+If you prefer to run them separately:
+
+**Emulator (Docker):**
 
 ```bash
-gcloud beta emulators pubsub start --project=test-project --host-port=0.0.0.0:8681
+mise run emulator
 ```
 
-**Terminal 2 - Set environment and run subscriber:**
+**Listener:**
 
 ```bash
-export PUBSUB_EMULATOR_HOST=localhost:8681
-export PUBSUB_PROJECT_ID=test-project
-uv run main.py
+mise run listener
 ```
 
-## Subscribe
+**Web Viewer:**
 
-The subscriber creates topics from [settings.yaml](settings.yaml) and echoes incoming messages
-to stdout and the [messages](messages) folder as JSON files.
+```bash
+mise run view
+```
 
 ## Publish (JSONL)
 
-Use [publish.py](publish.py) to batch publish messages from JSONL (one JSON object
-per line). Each line must include a target topic and payload.
-
-Supported fields per line:
-- `topic`, `topic_id`, or `target_topic` (string)
-- `payload` or `data` (any JSON value)
-- `headers` or `attributes` (object of key/value pairs, optional)
-- `ordering_key` (string, optional)
-
-Example JSONL from [data/example.jsonl](data/example.jsonl):
-
-```json
-{"topic":"test1","payload":{"id":1,"event":"test1_event"},"headers":{"source":"example","timestamp":"2026-02-14T00:00:00Z"}}
-{"topic":"test2","payload":{"id":2,"event":"test2_event"},"headers":{"source":"example","timestamp":"2026-02-14T00:00:00Z"}}
-{"topic":"test3","payload":{"id":3,"event":"test3_event"},"headers":{"source":"example","timestamp":"2026-02-14T00:00:00Z"}}
-```
-
-Publish from a file (with emulator running):
+Use the `publish` task to batch publish messages:
 
 ```bash
-export PUBSUB_EMULATOR_HOST=localhost:8681
-export PUBSUB_PROJECT_ID=test-project
-uv run publish.py --jsonl ./data/example.jsonl
-```
+# From a file
+mise run publish -- --jsonl ./data/example.jsonl
 
-Or from stdin:
-
-```bash
-cat ./data/example.jsonl | uv run publish.py
+# From stdin
+cat ./data/example.jsonl | mise run publish
 ```

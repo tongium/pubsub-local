@@ -1,0 +1,26 @@
+[tools]
+go = "latest"
+
+[env]
+PUBSUB_EMULATOR_HOST = "localhost:8681"
+PUBSUB_PROJECT_ID = "test-project"
+
+[tasks."emulator"]
+description = "Run Google Cloud Pub/Sub Emulator in Docker"
+run = "podman run --rm -p 8681:8681 gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators gcloud beta emulators pubsub start --project=test-project --host-port=0.0.0.0:8681"
+
+[tasks."listener"]
+description = "Run Pub/Sub Listener (Go)"
+run = "go run cmd/listener/main.go"
+
+[tasks."publish"]
+description = "Run Pub/Sub Publisher (Go)"
+run = "go run cmd/publish/main.go"
+
+[tasks."view"]
+description = "Run Web Viewer"
+run = "go run cmd/web/main.go"
+
+[tasks."up"]
+description = "Start emulator, listener, and web viewer"
+run = [{ tasks = ["emulator", "listener", "view"] }]

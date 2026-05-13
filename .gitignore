@@ -13,3 +13,9 @@ data/*
 !data/example.jsonl
 
 settings.yaml
+
+# Build artifacts
+*.log
+pubsub-listener
+pubsub-publish
+pubsub-web
