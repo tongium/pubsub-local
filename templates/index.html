@@ -6,6 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pub/Sub Local Viewer</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%237f2626%22/></svg>">
     <script src="https://unpkg.com/htmx.org@2.0.10"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism-tomorrow.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js"></script>
@@ -71,7 +73,7 @@
 
         #content {
             flex-grow: 1;
-            padding: 2rem;
+            padding: 1rem 3rem;
             overflow-y: auto;
         }
 
@@ -129,8 +131,11 @@
             border: 1px solid var(--border-color);
             border-radius: 2px;
             box-shadow: none;
-            overflow-x: auto;
             color: var(--text-color);
+            font-size: 0.9em;
+        }
+
+        pre[class*="language-"] {
             font-size: 0.9em;
         }
 
@@ -144,7 +149,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 8px;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 8px;
         }
@@ -202,15 +207,16 @@
         </div>
         <div id="tree-container" hx-get="/tree" hx-trigger="load, messagesCleared from:body, every 5s"
             hx-vals='js:{selectedTopic: window.selectedTopic, selectedID: window.selectedID}'>
-            Loading tree...
+            Loading...
         </div>
     </div>
     <div id="content">
         <div id="message-view">
             <div style="height: 100%; display: flex; align-items: center; justify-content: center;">
                 <span
-                    style="color: var(--secondary-text); font-weight: 300; font-size: 1.1em; letter-spacing: 0.05em;">Select
-                    a message to view details</span>
+                    style="color: var(--secondary-text); margin-top: 4em; font-weight: 300; font-size: 1.1em; letter-spacing: 0.05em;">
+                    Select a message to view details
+                </span>
             </div>
         </div>
     </div>
