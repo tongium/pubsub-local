@@ -1,12 +1,8 @@
 topics:
-  - id: test1
+  - id: topic-1
     subscribers:
-      - id: test1-sub
-  - id: test2
+      - id: topic-1-sub
+  - id: topic-2
     subscribers: []
-  - id: test3
-    subscribers: []
-  - id: test4
-    subscribers: []
-  - id: test5
+  - id: topic-3
     subscribers: []
