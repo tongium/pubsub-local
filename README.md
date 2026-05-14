@@ -13,39 +13,21 @@ Develop and test your Google Cloud Pub/Sub applications without a cloud account 
 
 ## Quick Start
 
-The fastest way to get everything running (Emulator, Listener, and Viewer) is using **mise**:
-
-```bash
-mise run up
-```
-
-This starts the entire stack.
-
-### Using Docker Compose (Portable)
-
-If you prefer to run the stack as a containerized service in your project:
+Add this to your project's `docker-compose.yml` to start the entire stack (Emulator, Listener, and Web Viewer):
 
 ```yaml
-# docker-compose.yml
 services:
   pubsub-local:
     image: ghcr.io/tongium/pubsub-local
     environment:
       PUBSUB_PROJECT_ID: test-project
     ports:
-      - "8681:8681"
-      - "8682:8682"
+      - "8681:8681" # Emulator
+      - "8682:8682" # Web Viewer
     volumes:
       - ./pubsub/settings.yaml:/app/settings.yaml
       - ./pubsub/messages:/app/messages
 ```
-
-Run it:
-```bash
-docker compose up -d
-```
-
----
 
 Access the **Web Viewer** at:
 👉 **http://localhost:8682**
@@ -57,3 +39,19 @@ Access the **Web Viewer** at:
 - **Instant Search**: Browse messages with localized timestamps and keyboard navigation.
 - **Dark Mode Support**: Easy on the eyes for long development sessions.
 - **Data Persistence**: Messages are saved as plain JSON files for easy debugging.
+
+---
+
+## Local Development
+
+If you have cloned this repository and want to run it locally for development:
+
+### Using mise
+```bash
+mise run up
+```
+
+### Using local Docker Compose
+```bash
+docker compose up -d
+```
