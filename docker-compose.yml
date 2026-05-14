@@ -3,7 +3,7 @@ services:
     build: .
     ports:
       - "8681:8681"
-      - "8080:8080"
+      - "8682:8682"
     environment:
       - PUBSUB_PROJECT_ID=test-project
     volumes:

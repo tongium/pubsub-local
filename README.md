@@ -19,7 +19,7 @@ Run the emulator, listener, and web viewer together:
 mise run up
 ```
 
-This starts the Pub/Sub emulator in Docker, the Go listener, and the web viewer (at http://localhost:8080) in parallel.
+This starts the Pub/Sub emulator in Docker, the Go listener, and the web viewer (at http://localhost:8682) in parallel.
 
 ### Using Docker Compose (Portable)
 
@@ -34,7 +34,7 @@ services:
       PUBSUB_PROJECT_ID: test-project
     ports:
       - "8681:8681"
-      - "8080:8080"
+      - "8682:8682"
     volumes:
       - ./pubsub/settings.yaml:/app/settings.yaml
       - ./pubsub/messages:/app/messages
@@ -55,7 +55,7 @@ docker build -t pubsub-local .
 ```bash
 docker run -d \
   -p 8681:8681 \
-  -p 8080:8080 \
+  -p 8682:8682 \
   -v $(pwd)/settings.yaml:/app/settings.yaml \
   -v $(pwd)/messages:/app/messages \
   pubsub-local

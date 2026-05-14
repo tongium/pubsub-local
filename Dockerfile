@@ -40,7 +40,7 @@ RUN chmod +x entrypoint.sh
 ENV PUBSUB_EMULATOR_HOST=localhost:8681
 ENV PUBSUB_PROJECT_ID=test-project
 
-# Expose Emulator (8681) and Web Viewer (8080)
-EXPOSE 8681 8080
+# Expose Emulator (8681) and Web Viewer (8682)
+EXPOSE 8681 8682
 
 ENTRYPOINT ["./entrypoint.sh"]

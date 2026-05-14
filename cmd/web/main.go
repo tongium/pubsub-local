@@ -10,13 +10,20 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/tidwall/gjson"
 )
 
+type MessageMetadata struct {
+	Filename    string
+	PublishTime time.Time
+	DisplayTime string
+}
+
 type TopicFolder struct {
 	Name  string
-	Files []string
+	Files []MessageMetadata
 }
 
 type TreeData struct {
@@ -101,7 +108,7 @@ func main() {
 		fmt.Fprint(w, "All messages cleared.")
 	})
 
-	port := 8080
+	port := 8682
 	slog.Info("Server starting", "port", port, "url", fmt.Sprintf("http://localhost:%d", port))
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil); err != nil {
 		slog.Error("Server failed", "error", err)
@@ -121,22 +128,32 @@ func getFileTree() []TopicFolder {
 
 	for _, entry := range entries {
 		if entry.IsDir() {
-			slog.Debug("Found topic directory", "name", entry.Name())
 			topic := TopicFolder{Name: entry.Name()}
 			files, err := os.ReadDir(filepath.Join(messagesDir, entry.Name()))
 			if err == nil {
 				for _, f := range files {
 					if !f.IsDir() && strings.HasSuffix(f.Name(), ".json") {
-						topic.Files = append(topic.Files, f.Name())
+						meta := MessageMetadata{Filename: f.Name()}
+
+						// Read file to get publish time
+						content, err := os.ReadFile(filepath.Join(messagesDir, entry.Name(), f.Name()))
+						if err == nil {
+							tStr := gjson.Get(string(content), "publish_time").String()
+							if t, err := time.Parse(time.RFC3339, tStr); err == nil {
+								localT := t.Local()
+								meta.PublishTime = localT
+								meta.DisplayTime = localT.Format("2006-01-02 15:04:05")
+							}
+						}
+
+						topic.Files = append(topic.Files, meta)
 					}
 				}
-				slog.Debug("Added files for topic", "topic", entry.Name(), "count", len(topic.Files))
-				// Sort files descending (newest IDs/timestamps usually higher)
-				slices.SortFunc(topic.Files, func(a, b string) int {
-					return cmp.Compare(b, a)
+
+				// Sort files descending by publish time
+				slices.SortFunc(topic.Files, func(a, b MessageMetadata) int {
+					return b.PublishTime.Compare(a.PublishTime)
 				})
-			} else {
-				slog.Error("Error reading topic dir", "topic", entry.Name(), "error", err)
 			}
 			tree = append(tree, topic)
 		}

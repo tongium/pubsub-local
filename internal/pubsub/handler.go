@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 
 	"cloud.google.com/go/pubsub/v2"
@@ -44,12 +43,7 @@ func saveMessageToFile(topicID string, msg *pubsub.Message) error {
 		Data:        data,
 	}
 
-	displayID := msg.ID
-	if id, err := strconv.Atoi(msg.ID); err == nil {
-		displayID = fmt.Sprintf("%06d", id)
-	}
-
-	filename := filepath.Join(dir, fmt.Sprintf("%s.json", displayID))
+	filename := filepath.Join(dir, fmt.Sprintf("%s.json", msg.ID))
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
