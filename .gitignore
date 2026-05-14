@@ -9,8 +9,8 @@ wheels/
 # Virtual environments
 .venv
 messages/
-data/*
-!data/example.jsonl
+docs/*.jsonl
+!docs/example.jsonl
 
 settings.yaml
 

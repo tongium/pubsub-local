@@ -42,6 +42,14 @@ Access the **Web Viewer** at:
 
 ---
 
+## Examples
+
+You can find example configuration and data files in the [docs](./docs) directory:
+- [settings.example.yaml](./docs/settings.example.yaml): Template for configuring topics and subscriptions.
+- [example.jsonl](./docs/example.jsonl): Sample data for batch publishing.
+
+---
+
 ## Local Development
 
 If you have cloned this repository and want to run it locally for development:
