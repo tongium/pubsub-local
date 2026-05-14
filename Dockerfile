@@ -36,6 +36,9 @@ COPY --from=builder /app/settings.exmaple.yaml ./settings.yaml
 COPY docker/entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
+# Ensure message storage directory exists at runtime
+RUN mkdir -p /app/messages
+
 # Environment variables for internal communication
 ENV PUBSUB_EMULATOR_HOST=localhost:8681
 ENV PUBSUB_PROJECT_ID=test-project
