@@ -5,9 +5,18 @@
 A local Google Cloud Pub/Sub emulator setup that automatically configures topics from YAML configuration files and saves incoming messages to the file system. This project enables local development and testing of Pub/Sub-based applications without requiring a Google Cloud account.
 
 **Key Features:**
-- Topic configuration via YAML files
-- Automatic message persistence to disk
-- Batch message publishing from JSONL format
+- **Topic Configuration**: Automatically creates topics and subscriptions via YAML files.
+- **Message Persistence**: Saves incoming messages to disk as JSON for local inspection.
+- **HTMX Web Viewer**: Modern, minimalist viewer (Muji-inspired) for browsing captured messages.
+- **Advanced Viewer Features**:
+  - **Syntax Highlighting**: Beautifully formatted JSON payloads using Prism.js.
+  - **Dark Mode**: System-aware theme switching.
+  - **Collapsible Topics**: Organizable sidebar with persistent state.
+  - **Time-Based Sorting**: Messages sorted by publication time (newest first).
+  - **Local Timestamps**: Human-readable message timing in your local timezone.
+  - **Keyboard Navigation**: Flip through messages quickly with Arrow keys.
+- **Batch Publishing**: CLI tool to publish multiple messages from JSONL files.
+- **Docker Ready**: Pre-configured for both local development (mise) and CI/CD (GitHub Actions).
 
 ## Quick Start
 

@@ -266,6 +266,33 @@
             }
         });
 
+        // Keyboard navigation
+        document.addEventListener('keydown', function (evt) {
+            if (evt.key !== 'ArrowUp' && evt.key !== 'ArrowDown') return;
+
+            const current = document.querySelector('.tree-node.selected');
+            const allNodes = Array.from(document.querySelectorAll('.tree-node:not(.collapsed .tree-node)'));
+            if (allNodes.length === 0) return;
+
+            evt.preventDefault();
+            let nextIndex = 0;
+
+            if (current) {
+                const currentIndex = allNodes.indexOf(current);
+                if (evt.key === 'ArrowUp') {
+                    nextIndex = Math.max(0, currentIndex - 1);
+                } else {
+                    nextIndex = Math.min(allNodes.length - 1, currentIndex + 1);
+                }
+            }
+
+            const nextNode = allNodes[nextIndex];
+            if (nextNode && nextNode !== current) {
+                nextNode.click();
+                nextNode.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        });
+
         function reapplyCollapseState() {
             document.querySelectorAll('.tree-item').forEach(item => {
                 const topic = item.getAttribute('data-topic');
