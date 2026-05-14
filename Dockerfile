@@ -30,7 +30,7 @@ COPY --from=builder /app/pubsub-web .
 
 # Copy templates and default configuration
 COPY --from=builder /app/templates ./templates
-COPY --from=builder /app/docs/settings.exmaple.yaml ./settings.yaml
+COPY --from=builder /app/docs/settings.example.yaml ./settings.yaml
 
 # Copy entrypoint script
 COPY docker/entrypoint.sh .

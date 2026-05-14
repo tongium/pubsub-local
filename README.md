@@ -32,6 +32,12 @@ services:
 Access the **Web Viewer** at:
 👉 **http://localhost:8682**
 
+To connect your application to the local Pub/Sub emulator, set:
+
+```bash
+export PUBSUB_EMULATOR_HOST=localhost:8681
+```
+
 ---
 
 ### Features at a glance:
