@@ -19,7 +19,19 @@ The fastest way to get everything running (Emulator, Listener, and Viewer) is us
 mise run up
 ```
 
-This starts the entire stack. You can then access the **Web Viewer** at:
+This starts the entire stack.
+
+### Using Docker Compose (Portable)
+
+If you prefer to run the stack as a containerized service:
+
+```bash
+docker compose up -d
+```
+
+---
+
+Access the **Web Viewer** at:
 👉 **http://localhost:8682**
 
 ---
