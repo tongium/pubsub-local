@@ -23,8 +23,24 @@ This starts the entire stack.
 
 ### Using Docker Compose (Portable)
 
-If you prefer to run the stack as a containerized service:
+If you prefer to run the stack as a containerized service in your project:
 
+```yaml
+# docker-compose.yml
+services:
+  pubsub-local:
+    image: ghcr.io/tongium/pubsub-local
+    environment:
+      PUBSUB_PROJECT_ID: test-project
+    ports:
+      - "8681:8681"
+      - "8682:8682"
+    volumes:
+      - ./pubsub/settings.yaml:/app/settings.yaml
+      - ./pubsub/messages:/app/messages
+```
+
+Run it:
 ```bash
 docker compose up -d
 ```
