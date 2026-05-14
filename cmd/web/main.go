@@ -10,11 +10,19 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/tidwall/gjson"
 )
 
 type TopicFolder struct {
 	Name  string
 	Files []string
+}
+
+type TreeData struct {
+	Folders       []TopicFolder
+	SelectedTopic string
+	SelectedID    string
 }
 
 type MessageView struct {
@@ -36,7 +44,12 @@ func main() {
 
 	http.HandleFunc("/tree", func(w http.ResponseWriter, r *http.Request) {
 		tree := getFileTree()
-		tmpl.ExecuteTemplate(w, "tree", tree)
+		data := TreeData{
+			Folders:       tree,
+			SelectedTopic: r.URL.Query().Get("selectedTopic"),
+			SelectedID:    r.URL.Query().Get("selectedID"),
+		}
+		tmpl.ExecuteTemplate(w, "tree", data)
 	})
 
 	http.HandleFunc("/message", func(w http.ResponseWriter, r *http.Request) {
@@ -54,9 +67,11 @@ func main() {
 			return
 		}
 
+		messageID := gjson.Get(string(content), "message_id").String()
+
 		tmpl.ExecuteTemplate(w, "message", MessageView{
 			Topic:   topic,
-			ID:      strings.TrimSuffix(id, ".json"),
+			ID:      messageID,
 			Content: string(content),
 		})
 	})

@@ -7,6 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pub/Sub Local Viewer</title>
     <script src="https://unpkg.com/htmx.org@2.0.10"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-json.min.js"></script>
     <style>
         :root {
             --bg-color: #f4f4f9;
@@ -14,6 +17,36 @@
             --border-color: #ddd;
             --text-color: #333;
             --primary-color: #007bff;
+            --hover-bg: #e9ecef;
+            --selected-bg: #d1e7ff;
+            --selected-text: #0056b3;
+            --pre-bg: #fff;
+            --btn-bg: #eee;
+            --btn-hover: #ddd;
+            --folder-text: #555;
+            --secondary-text: #666;
+            --refresh-hover: #e7f1ff;
+            --clear-hover: #f8d7da;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #0d1117;
+                --sidebar-bg: #161b22;
+                --border-color: #30363d;
+                --text-color: #c9d1d9;
+                --primary-color: #58a6ff;
+                --hover-bg: #21262d;
+                --selected-bg: #1f6feb;
+                --selected-text: #ffffff;
+                --pre-bg: #0d1117;
+                --btn-bg: #21262d;
+                --btn-hover: #30363d;
+                --folder-text: #8b949e;
+                --secondary-text: #8b949e;
+                --refresh-hover: #1f6feb44;
+                --clear-hover: #da363344;
+            }
         }
 
         body {
@@ -26,7 +59,7 @@
         }
 
         #sidebar {
-            width: 300px;
+            width: 14rem;
             background-color: var(--sidebar-bg);
             border-right: 1px solid var(--border-color);
             overflow-y: auto;
@@ -37,7 +70,7 @@
 
         #content {
             flex-grow: 1;
-            padding: 40px;
+            padding: 2rem;
             overflow-y: auto;
         }
 
@@ -49,13 +82,27 @@
         }
 
         .tree-node:hover {
-            background-color: #e9ecef;
+            background-color: var(--hover-bg);
         }
 
         .tree-folder {
             font-weight: bold;
             margin-top: 8px;
-            color: #555;
+            margin-bottom: 4px;
+            color: var(--folder-text);
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tree-folder:hover {
+            color: var(--primary-color);
+        }
+
+        .tree-item.collapsed .tree-children {
+            display: none;
         }
 
         .tree-file {
@@ -65,13 +112,20 @@
             display: block;
         }
 
+        .tree-node.selected {
+            background-color: var(--selected-bg);
+            font-weight: bold;
+            color: var(--selected-text);
+        }
+
         pre {
-            background: #fff;
+            background: var(--pre-bg);
             padding: 20px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             overflow-x: auto;
+            color: var(--text-color);
         }
 
         h2 {
@@ -85,6 +139,11 @@
             margin-bottom: 20px;
         }
 
+        .sidebar-title {
+            font-weight: bold;
+            color: var(--secondary-text);
+        }
+
         .action-btns {
             display: flex;
             gap: 8px;
@@ -96,20 +155,20 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 1.2em;
-            background: #eee;
+            background: var(--btn-bg);
             transition: background 0.2s;
         }
 
         .icon-btn:hover {
-            background: #ddd;
+            background: var(--btn-hover);
         }
 
         .refresh-btn:hover {
-            background: #e7f1ff;
+            background: var(--refresh-hover);
         }
 
         .clear-btn:hover {
-            background: #f8d7da;
+            background: var(--clear-hover);
         }
     </style>
 </head>
@@ -117,37 +176,105 @@
 <body>
     <div id="sidebar">
         <div class="sidebar-header">
-            <span style="font-weight: bold; color: #666;">Topics</span>
+            <span class="sidebar-title">Topics</span>
             <div class="action-btns">
-                <button class="icon-btn refresh-btn" hx-get="/tree" hx-target="#tree-container" title="Refresh Tree">🔄</button>
-                <button class="icon-btn clear-btn" hx-post="/clear" 
-                    hx-confirm="Are you sure you want to delete all messages?"
-                    hx-target="#message-view" title="Clear All Messages">🗑️</button>
+                <button class="icon-btn refresh-btn" hx-get="/tree" hx-target="#tree-container"
+                    title="Refresh Tree">🔄</button>
+                <button class="icon-btn clear-btn" hx-post="/clear"
+                    hx-confirm="Are you sure you want to delete all messages?" hx-target="#message-view"
+                    title="Clear All Messages">🗑️</button>
             </div>
         </div>
-        <div id="tree-container" hx-get="/tree" hx-trigger="load, messagesCleared from:body">
+        <div id="tree-container" hx-get="/tree" hx-trigger="load, messagesCleared from:body, every 5s"
+            hx-vals='js:{selectedTopic: window.selectedTopic, selectedID: window.selectedID}'>
             Loading tree...
         </div>
     </div>
     <div id="content">
-        <h2>Message Details</h2>
         <div id="message-view">
-            Select a message from the tree to view its content.
+            <h2 style="color: var(--secondary-text); font-weight: normal; margin-top: 0;">Select a message</h2>
         </div>
     </div>
+
+    <script>
+        window.selectedTopic = null;
+        window.selectedID = null;
+        window.collapsedFolders = new Set();
+
+        document.body.addEventListener('htmx:afterOnLoad', function (evt) {
+            if (evt.detail.target.id === 'message-view') {
+                const url = new URL(evt.detail.requestConfig.path, window.location.origin + evt.detail.requestConfig.path);
+                window.selectedTopic = url.searchParams.get('topic');
+                window.selectedID = url.searchParams.get('id');
+            }
+        });
+
+        // Handle Prism highlighting and collapse state after HTMX swap
+        document.body.addEventListener('htmx:afterSwap', function (evt) {
+            if (evt.detail.target.id === 'message-view') {
+                Prism.highlightAllUnder(evt.detail.target);
+            }
+            if (evt.detail.target.id === 'tree-container') {
+                reapplyCollapseState();
+            }
+        });
+
+        // Instant highlight on click and toggle collapse
+        document.body.addEventListener('click', function (evt) {
+            const node = evt.target.closest('.tree-node');
+            if (node) {
+                document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('selected'));
+                node.classList.add('selected');
+            }
+
+            const folder = evt.target.closest('.tree-folder');
+            if (folder) {
+                const item = folder.closest('.tree-item');
+                const topic = item.getAttribute('data-topic');
+                item.classList.toggle('collapsed');
+                if (item.classList.contains('collapsed')) {
+                    window.collapsedFolders.add(topic);
+                } else {
+                    window.collapsedFolders.delete(topic);
+                }
+                updateFolderIcon(item);
+            }
+        });
+
+        function reapplyCollapseState() {
+            document.querySelectorAll('.tree-item').forEach(item => {
+                const topic = item.getAttribute('data-topic');
+                if (window.collapsedFolders.has(topic)) {
+                    item.classList.add('collapsed');
+                }
+                updateFolderIcon(item);
+            });
+        }
+
+        function updateFolderIcon(item) {
+            const icon = item.querySelector('.folder-icon');
+            if (icon) {
+                icon.textContent = item.classList.contains('collapsed') ? '📁' : '📂';
+            }
+        }
+    </script>
 </body>
 
 </html>
 {{ end }}
 
 {{ define "tree" }}
-{{ range . }}
-<div class="tree-item">
-    <div class="tree-folder">📁 {{ .Name }}</div>
+{{ $selectedTopic := .SelectedTopic }}
+{{ $selectedID := .SelectedID }}
+{{ range .Folders }}
+<div class="tree-item" data-topic="{{ .Name }}">
+    <div class="tree-folder"><span class="folder-icon">📂</span> {{ .Name }}</div>
     <div class="tree-children">
         {{ $topic := .Name }}
         {{ range .Files }}
-        <div class="tree-node tree-file" hx-get="/message?topic={{ $topic }}&id={{ . }}" hx-target="#message-view">
+        {{ $isSelected := and (eq $topic $selectedTopic) (eq . $selectedID) }}
+        <div class="tree-node tree-file {{ if $isSelected }}selected{{ end }}"
+            hx-get="/message?topic={{ $topic }}&id={{ . }}" hx-target="#message-view">
             📄 {{ . }}
         </div>
         {{ end }}
@@ -157,7 +284,6 @@
 {{ end }}
 
 {{ define "message" }}
-<h3>Topic: {{ .Topic }}</h3>
-<p><strong>Message ID:</strong> {{ .ID }}</p>
-<pre>{{ .Content }}</pre>
+<h3 style="margin-top: 0;">{{ .Topic }} - {{ .ID }}</h3>
+<pre><code class="language-json">{{ .Content }}</code></pre>
 {{ end }}
