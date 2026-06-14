@@ -46,4 +46,8 @@ ENV PUBSUB_PROJECT_ID=test-project
 # Expose Emulator (8681) and Web Viewer (8682)
 EXPOSE 8681 8682
 
+# Health check to ensure the emulator is responding
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+  CMD bash -c "echo > /dev/tcp/localhost/8681" || exit 1
+
 ENTRYPOINT ["./entrypoint.sh"]
