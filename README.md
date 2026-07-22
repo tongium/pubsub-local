@@ -70,17 +70,18 @@ curl -X POST "http://localhost:8682/api/publish" \
   --data-binary @docs/example.jsonl
 ```
 
-Send a single JSON record directly:
+Send JSON array payload (`[]PublishEntry`) with `application/json`:
 
 ```bash
 curl -X POST "http://localhost:8682/api/publish" \
   -H "Content-Type: application/json" \
-  --data-raw '{"topic":"topic-1","payload":{"id":10,"message":"Hello API"},"attributes":{"key":"value"}}'
+  --data-raw '[{"topic":"topic-1","payload":{"id":10,"message":"Hello API"},"attributes":{"key":"value"}}]'
 ```
 
 Notes:
-- Each line must be one complete JSON record.
-- Multi-line JSON objects and JSON arrays are not supported by this endpoint.
+- For `Content-Type: application/jsonl`, each line must be one complete JSON record.
+- For `Content-Type: application/json`, the body must be a JSON array of publish entries.
+- To send a single entry with `application/json`, wrap it in an array with one item.
 
 ---
 

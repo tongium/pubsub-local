@@ -23,12 +23,16 @@ type PublishEntry struct {
 	OrderingKey string            `json:"ordering_key"`
 }
 
+type publishInput struct {
+	entry      PublishEntry
+	entryIndex int
+}
+
 func PublishFromReader(ctx context.Context, client *pubsub.Client, projectID string, r io.Reader) (int, error) {
 	scanner := bufio.NewScanner(r)
-	var wg sync.WaitGroup
 	var failures int
-	var mu sync.Mutex
 
+	var inputs []publishInput
 	lineNum := 0
 	for scanner.Scan() {
 		lineNum++
@@ -39,10 +43,46 @@ func PublishFromReader(ctx context.Context, client *pubsub.Client, projectID str
 
 		var entry PublishEntry
 		if err := json.Unmarshal([]byte(line), &entry); err != nil {
-			slog.Error("Failed to unmarshal entry", "line", lineNum, "error", err)
+			slog.Error("Failed to decode publish entry", "index", lineNum, "error", err)
 			failures++
 			continue
 		}
+		inputs = append(inputs, publishInput{entry: entry, entryIndex: lineNum})
+	}
+
+	if err := scanner.Err(); err != nil {
+		return failures, err
+	}
+
+	publishFailures, err := publishInputs(ctx, client, projectID, inputs)
+	if err != nil {
+		return failures + publishFailures, err
+	}
+
+	return failures + publishFailures, nil
+}
+
+func PublishEntries(ctx context.Context, client *pubsub.Client, projectID string, entries []PublishEntry) (int, error) {
+	inputs := make([]publishInput, 0, len(entries))
+	for idx, entry := range entries {
+		inputs = append(inputs, publishInput{entry: entry, entryIndex: idx + 1})
+	}
+	return publishInputs(ctx, client, projectID, inputs)
+}
+
+func publishInputs(ctx context.Context, client *pubsub.Client, projectID string, inputs []publishInput) (int, error) {
+	var wg sync.WaitGroup
+	var failures int
+	var mu sync.Mutex
+	addFailure := func() {
+		mu.Lock()
+		failures++
+		mu.Unlock()
+	}
+
+	for _, input := range inputs {
+		entry := input.entry
+		entryIndex := input.entryIndex
 
 		topicID := entry.Topic
 		if topicID == "" {
@@ -51,10 +91,9 @@ func PublishFromReader(ctx context.Context, client *pubsub.Client, projectID str
 		if topicID == "" {
 			topicID = entry.TargetTopic
 		}
-
 		if topicID == "" {
-			slog.Error("Missing topic", "line", lineNum)
-			failures++
+			slog.Error("Missing topic", "index", entryIndex)
+			addFailure()
 			continue
 		}
 
@@ -63,15 +102,15 @@ func PublishFromReader(ctx context.Context, client *pubsub.Client, projectID str
 			payload = entry.Data
 		}
 		if payload == nil {
-			slog.Error("Missing payload/data", "line", lineNum)
-			failures++
+			slog.Error("Missing payload/data", "index", entryIndex)
+			addFailure()
 			continue
 		}
 
 		data, err := json.Marshal(payload)
 		if err != nil {
-			slog.Error("Failed to marshal payload", "line", lineNum, "error", err)
-			failures++
+			slog.Error("Failed to marshal payload", "index", entryIndex, "error", err)
+			addFailure()
 			continue
 		}
 
@@ -85,13 +124,13 @@ func PublishFromReader(ctx context.Context, client *pubsub.Client, projectID str
 
 		publisher, err := EnsureTopic(ctx, client, projectID, topicID)
 		if err != nil {
-			slog.Error("Failed to ensure topic", "line", lineNum, "topicID", topicID, "error", err)
-			failures++
+			slog.Error("Failed to ensure topic", "index", entryIndex, "topicID", topicID, "error", err)
+			addFailure()
 			continue
 		}
 
 		wg.Add(1)
-		go func(p *pubsub.Publisher, d []byte, oKey string, a map[string]string, lNum int, tID string) {
+		go func(p *pubsub.Publisher, d []byte, oKey string, a map[string]string, idx int, tID string) {
 			defer wg.Done()
 			res := p.Publish(ctx, &pubsub.Message{
 				Data:        d,
@@ -100,16 +139,10 @@ func PublishFromReader(ctx context.Context, client *pubsub.Client, projectID str
 			})
 			_, err := res.Get(ctx)
 			if err != nil {
-				slog.Error("Publish failed", "line", lNum, "topicID", tID, "error", err)
-				mu.Lock()
-				failures++
-				mu.Unlock()
+				slog.Error("Publish failed", "index", idx, "topicID", tID, "error", err)
+				addFailure()
 			}
-		}(publisher, data, entry.OrderingKey, attrs, lineNum, topicID)
-	}
-
-	if err := scanner.Err(); err != nil {
-		return failures, err
+		}(publisher, data, entry.OrderingKey, attrs, entryIndex, topicID)
 	}
 
 	wg.Wait()

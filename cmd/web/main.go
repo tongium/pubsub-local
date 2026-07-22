@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"log/slog"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,8 +17,8 @@ import (
 
 	"cloud.google.com/go/pubsub/v2"
 	"github.com/joho/godotenv"
-	internalpubsub "github.com/tongium/pubsub-local/internal/pubsub"
 	"github.com/tidwall/gjson"
+	internalpubsub "github.com/tongium/pubsub-local/internal/pubsub"
 )
 
 type MessageMetadata struct {
@@ -125,7 +126,24 @@ func main() {
 	})
 
 	http.HandleFunc("POST /api/publish", func(w http.ResponseWriter, r *http.Request) {
-		failures, err := internalpubsub.PublishFromReader(r.Context(), client, projectID, r.Body)
+		var (
+			failures int
+			err      error
+		)
+
+		contentType := r.Header.Get("Content-Type")
+		mediaType, _, parseErr := mime.ParseMediaType(contentType)
+		if parseErr == nil && mediaType == "application/json" {
+			var entries []internalpubsub.PublishEntry
+			if decodeErr := json.NewDecoder(r.Body).Decode(&entries); decodeErr != nil {
+				http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+				return
+			}
+			failures, err = internalpubsub.PublishEntries(r.Context(), client, projectID, entries)
+		} else {
+			failures, err = internalpubsub.PublishFromReader(r.Context(), client, projectID, r.Body)
+		}
+
 		if err != nil {
 			slog.Error("Failed to publish from API", "error", err)
 			http.Error(w, "Failed to publish message", http.StatusInternalServerError)
