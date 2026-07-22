@@ -21,6 +21,10 @@ run = "go run cmd/publish/main.go"
 description = "Run Web Viewer"
 run = "go run cmd/web/main.go"
 
-[tasks."up"]
+[tasks."init-messages-dir"]
+description = "Create messages directory if missing"
+run = "mkdir -p messages"
+
+[tasks."dev"]
 description = "Start emulator, listener, and web viewer"
-run = [{ tasks = ["emulator", "listener", "view"] }]
+run = [{ tasks = ["init-messages-dir", "emulator", "listener", "view"] }]

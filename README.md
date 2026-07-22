@@ -54,6 +54,34 @@ You can find example configuration and data files in the [docs](./docs) director
 - [settings.example.yaml](./docs/settings.example.yaml): Template for configuring topics and subscriptions.
 - [example.jsonl](./docs/example.jsonl): Sample data for batch publishing.
 
+### Publish messages via API (curl)
+
+The web service exposes:
+
+```text
+POST http://localhost:8682/api/publish
+```
+
+Send JSONL (recommended) using the sample file:
+
+```bash
+curl -X POST "http://localhost:8682/api/publish" \
+  -H "Content-Type: application/jsonl" \
+  --data-binary @docs/example.jsonl
+```
+
+Send a single JSON record directly:
+
+```bash
+curl -X POST "http://localhost:8682/api/publish" \
+  -H "Content-Type: application/json" \
+  --data-raw '{"topic":"topic-1","payload":{"id":10,"message":"Hello API"},"attributes":{"key":"value"}}'
+```
+
+Notes:
+- Each line must be one complete JSON record.
+- Multi-line JSON objects and JSON arrays are not supported by this endpoint.
+
 ---
 
 ## Local Development

@@ -2,6 +2,8 @@ package main
 
 import (
 	"cmp"
+	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log/slog"
@@ -12,6 +14,9 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/pubsub/v2"
+	"github.com/joho/godotenv"
+	internalpubsub "github.com/tongium/pubsub-local/internal/pubsub"
 	"github.com/tidwall/gjson"
 )
 
@@ -39,6 +44,17 @@ type MessageView struct {
 }
 
 func main() {
+	_ = godotenv.Load()
+
+	projectID := cmp.Or(os.Getenv("PUBSUB_PROJECT_ID"), "test-project")
+	ctx := context.Background()
+	client, err := pubsub.NewClient(ctx, projectID)
+	if err != nil {
+		slog.Error("Failed to create client", "error", err)
+		os.Exit(1)
+	}
+	defer client.Close()
+
 	tmpl, err := template.ParseGlob("templates/*.html")
 	if err != nil {
 		slog.Error("Failed to parse templates", "error", err)
@@ -106,6 +122,30 @@ func main() {
 		w.Header().Set("HX-Trigger", "messagesCleared")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "All messages cleared.")
+	})
+
+	http.HandleFunc("POST /api/publish", func(w http.ResponseWriter, r *http.Request) {
+		failures, err := internalpubsub.PublishFromReader(r.Context(), client, projectID, r.Body)
+		if err != nil {
+			slog.Error("Failed to publish from API", "error", err)
+			http.Error(w, "Failed to publish message", http.StatusInternalServerError)
+			return
+		}
+		if failures > 0 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"ok":       false,
+				"failures": failures,
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"ok": true,
+		})
 	})
 
 	port := 8682
