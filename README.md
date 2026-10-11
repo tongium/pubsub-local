@@ -1,6 +1,6 @@
-# Pub/Sub Local
+# Pub/Sub Local: Google Cloud Pub/Sub Emulator with Web UI
 
-Local Google Cloud Pub/Sub for development: emulator, message capture, and a web viewer. No GCP account needed.
+Run a **local Google Cloud Pub/Sub emulator** in Docker with a **web UI to view published messages**. Topics and subscriptions are created from YAML, messages are saved as JSON, and no GCP account is needed. Works with any Pub/Sub client library (Go, Python, Java, Node.js).
 
 ## Quick Start
 
