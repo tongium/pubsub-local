@@ -11,7 +11,16 @@ type Topic struct {
 }
 
 type Settings struct {
-	Topics []Topic `yaml:"topics"`
+	// AutoDiscover creates a capture subscription for topics created at
+	// runtime (e.g. by your application). Defaults to true when omitted.
+	AutoDiscover *bool `yaml:"auto_discover"`
+	// DiscoverInterval is how often to look for new topics (Go duration, default "2s").
+	DiscoverInterval string  `yaml:"discover_interval"`
+	Topics           []Topic `yaml:"topics"`
+}
+
+func (s Settings) AutoDiscoverEnabled() bool {
+	return s.AutoDiscover == nil || *s.AutoDiscover
 }
 
 type MessageRecord struct {

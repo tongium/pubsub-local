@@ -1,8 +1,19 @@
+# Pub/Sub Local settings
+# Mount this file at /app/settings.yaml (see README).
+
+# Automatically create a capture subscription ("<topic>-echo") for topics that
+# are created at runtime, e.g. by your application. Default: true.
+auto_discover: true
+
+# How often to look for new topics (Go duration). Default: 2s.
+discover_interval: 2s
+
+# Topics and subscriptions created at startup.
 topics:
   - id: topic-1
     subscribers:
-      - id: topic-1-sub
+      - id: topic-1-sub        # a subscription your app can pull from / receive on
   - id: topic-2
-    subscribers: []
+    subscribers: []            # no extra subscriptions; messages are still captured
   - id: topic-3
     subscribers: []

@@ -4,12 +4,12 @@ import (
 	"cmp"
 	"context"
 	"flag"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"cloud.google.com/go/pubsub/v2"
 	"github.com/joho/godotenv"
@@ -41,37 +41,81 @@ func main() {
 		os.Exit(1)
 	}
 
-	var wg sync.WaitGroup
+	var (
+		wg      sync.WaitGroup
+		mu      sync.Mutex
+		tracked = make(map[string]bool)
+	)
 
-	for _, t := range settings.Topics {
-		_, err := internalpubsub.EnsureTopic(ctx, client, projectID, t.ID)
-		if err != nil {
-			slog.Error("Failed to ensure topic", "topicID", t.ID, "error", err)
-			continue
+	// capture creates the "<topic>-echo" subscription and starts persisting its messages.
+	capture := func(topicID string) {
+		mu.Lock()
+		defer mu.Unlock()
+		if tracked[topicID] {
+			return
 		}
 
-		// Create echo subscription
-		echoSubID := fmt.Sprintf("%s-echo", t.ID)
-		sub, err := internalpubsub.EnsureSubscription(ctx, client, projectID, echoSubID, t.ID)
+		echoSubID := topicID + "-echo"
+		sub, err := internalpubsub.EnsureSubscription(ctx, client, projectID, echoSubID, topicID)
 		if err != nil {
 			slog.Error("Failed to ensure subscription", "subscriptionID", echoSubID, "error", err)
-			continue
+			return
 		}
+		tracked[topicID] = true
 
 		wg.Go(func() {
-			handler := internalpubsub.CreateHandler(t.ID)
+			handler := internalpubsub.CreateHandler(topicID)
 			if err := sub.Receive(ctx, handler); err != nil {
 				slog.Error("Subscriber receiver error", "subscriberID", sub.ID(), "error", err)
 			}
 		})
+	}
 
-		// Create other subscriptions
+	for _, t := range settings.Topics {
+		if _, err := internalpubsub.EnsureTopic(ctx, client, projectID, t.ID); err != nil {
+			slog.Error("Failed to ensure topic", "topicID", t.ID, "error", err)
+			continue
+		}
+
+		capture(t.ID)
+
 		for _, s := range t.Subscribers {
-			_, err := internalpubsub.EnsureSubscription(ctx, client, projectID, s.ID, t.ID)
-			if err != nil {
+			if _, err := internalpubsub.EnsureSubscription(ctx, client, projectID, s.ID, t.ID); err != nil {
 				slog.Error("Failed to ensure subscription", "subscriptionID", s.ID, "error", err)
 			}
 		}
+	}
+
+	if settings.AutoDiscoverEnabled() {
+		interval := 2 * time.Second
+		if settings.DiscoverInterval != "" {
+			d, err := time.ParseDuration(settings.DiscoverInterval)
+			if err != nil || d <= 0 {
+				slog.Warn("Invalid discover_interval, using default", "value", settings.DiscoverInterval)
+			} else {
+				interval = d
+			}
+		}
+
+		wg.Go(func() {
+			slog.Info("Auto-discovering topics", "interval", interval)
+			ticker := time.NewTicker(interval)
+			defer ticker.Stop()
+			for {
+				ids, err := internalpubsub.ListTopicIDs(ctx, client, projectID)
+				if err != nil && ctx.Err() == nil {
+					slog.Error("Failed to list topics", "error", err)
+				}
+				for _, id := range ids {
+					capture(id)
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+				}
+			}
+		})
 	}
 
 	// Handle graceful shutdown
