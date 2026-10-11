@@ -129,20 +129,17 @@ func publishInputs(ctx context.Context, client *pubsub.Client, projectID string,
 			continue
 		}
 
-		wg.Add(1)
-		go func(p *pubsub.Publisher, d []byte, oKey string, a map[string]string, idx int, tID string) {
-			defer wg.Done()
-			res := p.Publish(ctx, &pubsub.Message{
-				Data:        d,
-				Attributes:  a,
-				OrderingKey: oKey,
+		wg.Go(func() {
+			res := publisher.Publish(ctx, &pubsub.Message{
+				Data:        data,
+				Attributes:  attrs,
+				OrderingKey: entry.OrderingKey,
 			})
-			_, err := res.Get(ctx)
-			if err != nil {
-				slog.Error("Publish failed", "index", idx, "topicID", tID, "error", err)
+			if _, err := res.Get(ctx); err != nil {
+				slog.Error("Publish failed", "index", entryIndex, "topicID", topicID, "error", err)
 				addFailure()
 			}
-		}(publisher, data, entry.OrderingKey, attrs, entryIndex, topicID)
+		})
 	}
 
 	wg.Wait()

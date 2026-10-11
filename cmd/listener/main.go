@@ -58,15 +58,12 @@ func main() {
 			continue
 		}
 
-		wg.Add(1)
-		go func(topicID string, s *pubsub.Subscriber) {
-			defer wg.Done()
-			handler := internalpubsub.CreateHandler(topicID)
-			err := s.Receive(ctx, handler)
-			if err != nil {
-				slog.Error("Subscriber receiver error", "subscriberID", s.ID(), "error", err)
+		wg.Go(func() {
+			handler := internalpubsub.CreateHandler(t.ID)
+			if err := sub.Receive(ctx, handler); err != nil {
+				slog.Error("Subscriber receiver error", "subscriberID", sub.ID(), "error", err)
 			}
-		}(t.ID, sub)
+		})
 
 		// Create other subscriptions
 		for _, s := range t.Subscribers {
